@@ -3329,7 +3329,7 @@ class MusicBot(discord.Client):
                     )
 
                 entry, position = await player.playlist.add_entry(song_url, channel=channel, author=author)
-                player.playlist.move(position, 1)
+                player.playlist.move(position-1, 1)
                 position = 1
 
                 reply_text = "Enqueued `%s` to be played next."
