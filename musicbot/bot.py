@@ -1300,8 +1300,14 @@ class MusicBot(discord.Client):
             )
         return True
 
-    async def cmd_play(self, message, player, channel, author, permissions, leftover_args, song_url):
-        """
+	async def cmd_play(self, message, player, channel, author, permissions, leftover_args, song_url, pos = 0):
+        self.play(message, player, channel, author, permissions, leftover_args, song_url, pos)
+		
+	async def cmd_playnext(self, message, player, channel, author, permissions, leftover_args, song_url):
+		self.play(message, player, channel, author, permissions, leftover_args, song_url, pos = 1)
+
+	def play(self, message, player, channel, author, permissions, leftover_args, song_url, pos = 0):
+		"""
         Usage:
             {command_prefix}play song_link
             {command_prefix}play text to search for
@@ -1314,7 +1320,8 @@ class MusicBot(discord.Client):
         it will use the metadata (e.g song name and artist) to find a YouTube
         equivalent of the song. Streaming from Spotify is not possible.
         """
-
+		pos -= 1
+		
         song_url = song_url.strip('<>')
 
         await self.send_typing(channel)
@@ -1506,7 +1513,7 @@ class MusicBot(discord.Client):
                 # TODO: I can create an event emitter object instead, add event functions, and every play list might be asyncified
                 #       Also have a "verify_entry" hook with the entry as an arg and returns the entry if its ok
 
-                entry_list, position = await player.playlist.import_from(song_url, channel=channel, author=author)
+                entry_list, position = await player.playlist.import_from(song_url, channel=channel, author=author, index = pos)
 
                 tnow = time.time()
                 ttime = tnow - t0
@@ -1578,6 +1585,7 @@ class MusicBot(discord.Client):
                 reply_text %= (btext, position, ftimedelta(time_until))
 
         return Response(reply_text, delete_after=30)
+		
 
     async def _cmd_play_playlist_async(self, player, channel, author, permissions, playlist_url, extractor_type):
         """

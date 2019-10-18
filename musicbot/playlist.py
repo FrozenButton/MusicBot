@@ -47,6 +47,11 @@ class Playlist(EventEmitter, Serializable):
         if(src >= dest):
             src += 1
         del self.entries[src]
+		
+	def swap(self, pos1, pos2):
+		tmp_entry = self.entries[pos1]
+		self.entries[pos1] = self.entries[pos2]
+		self.entries[pos2] = tmp_entry
 
     def clear(self):
         self.entries.clear()
@@ -64,8 +69,8 @@ class Playlist(EventEmitter, Serializable):
         return entry
 
 
-    async def add_entry(self, song_url, **meta):
-        """
+    async def add_entry(self, song_url, **meta, song_index = -1):
+		"""
             Validates and adds a song_url to be played. This does not start the download of the song.
 
             Returns the entry & the position it is in the queue.
@@ -73,6 +78,10 @@ class Playlist(EventEmitter, Serializable):
             :param song_url: The song url to add to the playlist.
             :param meta: Any additional metadata to add to the playlist entry.
         """
+		
+		up_next = song_index == 0	
+		if(song_index >= self.__len__()): # If insert index is past the end, set to -1
+			song_index = -1				 # -1 will add the song to the end
 
         try:
             info = await self.downloader.extract_info(self.loop, song_url, download=False)
@@ -87,7 +96,7 @@ class Playlist(EventEmitter, Serializable):
             raise WrongEntryTypeError("This is a playlist.", True, info.get('webpage_url', None) or info.get('url', None))
 
         if info.get('is_live', False):
-            return await self.add_stream_entry(song_url, info=info, **meta)
+            return await self.add_stream_entry(song_url, info=info, **meta, stream_index = song_index)
 
         # TODO: Extract this to its own function
         if info['extractor'] in ['generic', 'Dropbox']:
@@ -121,70 +130,19 @@ class Playlist(EventEmitter, Serializable):
             self.downloader.ytdl.prepare_filename(info),
             **meta
         )
-        self._add_entry(entry)
-        return entry, len(self.entries)
-        
-    async def add_entry_to_head(self, song_url, **meta):
-        """
-            Validates and adds a song_url to be played. This does not start the download of the song.
+        self._add_entry(entry, dest_index = song_index, head = up_next)
+		if(song_index == -1):
+			add_position = len(self.entries)
+		else:
+			add_position = song_index + 1
+        return entry, add_position
+    
 
-            Returns the entry & the position it is in the queue.
-
-            :param song_url: The song url to add to the playlist.
-            :param meta: Any additional metadata to add to the playlist entry.
-        """
-
-        try:
-            info = await self.downloader.extract_info(self.loop, song_url, download=False)
-        except Exception as e:
-            raise ExtractionError('Could not extract information from {}\n\n{}'.format(song_url, e))
-
-        if not info:
-            raise ExtractionError('Could not extract information from %s' % song_url)
-
-        # TODO: Sort out what happens next when this happens
-        if info.get('_type', None) == 'playlist':
-            raise WrongEntryTypeError("This is a playlist.", True, info.get('webpage_url', None) or info.get('url', None))
-
-        if info.get('is_live', False):
-            return await self.add_stream_entry(song_url, info=info, **meta)
-
-        # TODO: Extract this to its own function
-        if info['extractor'] in ['generic', 'Dropbox']:
-            log.debug('Detected a generic extractor, or Dropbox')
-            try:
-                headers = await get_header(self.bot.aiosession, info['url'])
-                content_type = headers.get('CONTENT-TYPE')
-                log.debug("Got content type {}".format(content_type))
-            except Exception as e:
-                log.warning("Failed to get content type for url {} ({})".format(song_url, e))
-                content_type = None
-
-            if content_type:
-                if content_type.startswith(('application/', 'image/')):
-                    if not any(x in content_type for x in ('/ogg', '/octet-stream')):
-                        # How does a server say `application/ogg` what the actual fuck
-                        raise ExtractionError("Invalid content type \"%s\" for url %s" % (content_type, song_url))
-
-                elif content_type.startswith('text/html') and info['extractor'] == 'generic':
-                    log.warning("Got text/html for content-type, this might be a stream.")
-                    return await self.add_stream_entry(song_url, info=info, **meta)  # TODO: Check for shoutcast/icecast
-
-                elif not content_type.startswith(('audio/', 'video/')):
-                    log.warning("Questionable content-type \"{}\" for url {}".format(content_type, song_url))
-
-        entry = URLPlaylistEntry(
-            self,
-            song_url,
-            info.get('title', 'Untitled'),
-            info.get('duration', 0) or 0,
-            self.downloader.ytdl.prepare_filename(info),
-            **meta
-        )
-        self._add_entry_to_head(entry)
-        return entry, len(self.entries)
-
-    async def add_stream_entry(self, song_url, info=None, **meta):
+    async def add_stream_entry(self, song_url, info=None, **meta, stream_index = -1):
+		up_next = stream_index == 0
+		if(stream_index >= self.__len__()):
+			stream_index = -1
+		
         if info is None:
             info = {'title': song_url, 'extractor': None}
 
@@ -230,8 +188,14 @@ class Playlist(EventEmitter, Serializable):
             destination = dest_url,
             **meta
         )
-        self._add_entry(entry)
-        return entry, len(self.entries)
+        self._add_entry(entry, dest_index = stream_index, head = up_next)
+		
+		if(stream_index == -1):
+			add_position = len(self.entries)
+		else:
+			add_position = stream_index + 1
+        return entry, add_position
+		
 
     async def import_from(self, playlist_url, **meta):
         """
@@ -369,9 +333,11 @@ class Playlist(EventEmitter, Serializable):
 
         return gooditems
 
-    def _add_entry(self, entry, *, head=False):
-        if head:
+    def _add_entry(self, entry, *, dest_index = -1, head = False):
+        if(head):
             self.entries.appendleft(entry)
+		elif(dest_index > -1 and dest_index < self.__len__()):
+			self.entries.insert(dest_index, entry)
         else:
             self.entries.append(entry)
 
@@ -379,9 +345,6 @@ class Playlist(EventEmitter, Serializable):
 
         if self.peek() is entry:
             entry.get_ready_future()
-            
-    def _add_entry_to_head(self, entry, *, head=False):
-        self.entries.appendleft(entry)
         
 
     def remove_entry(self, index):
