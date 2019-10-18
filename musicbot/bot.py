@@ -3347,6 +3347,6 @@ class MusicBot(discord.Client):
                     traceback.print_exc()
                     time_until = ''
 
-                reply_text %= (btext, position, ftimedelta(time_until))
+                reply_text %= (btext, str(position), ftimedelta(time_until))
 
         return Response(reply_text, delete_after=30)
