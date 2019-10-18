@@ -3029,3 +3029,43 @@ class MusicBot(discord.Client):
             if vc.guild == guild:
                 return vc
         return None
+
+    async def cmd_move(self, channel, player, src_pos, dest_pos):
+        src_pos = int(src_pos)
+        dest_pos = int(dest_pos)
+        """
+        Usage:
+            {command_prefix}move 5 1
+
+        Moves song from one position in queue to the next
+        """
+        size = player.playlist.__len__()
+        if(src_pos < 1 or src_pos > size or dest_pos < 1 or src_pos > size or src_pos == dest_pos):
+            raise exceptions.CommandError(self.str.get('cmd-volume-unreasonable-relative', 'Invalid index bounds'), expire_in=20)
+
+
+        player.playlist.move(src_pos - 1, dest_pos - 1)
+        
+        '''
+        cards = ['\N{BLACK SPADE SUIT}', '\N{BLACK CLUB SUIT}', '\N{BLACK HEART SUIT}', '\N{BLACK DIAMOND SUIT}']
+        random.shuffle(cards)
+
+        hand = await self.safe_send_message(channel, ' '.join(cards))
+        await asyncio.sleep(0.6)
+        
+        for x in range(4):
+            random.shuffle(cards)
+            await self.safe_edit_message(hand, ' '.join(cards))
+            await asyncio.sleep(0.6)
+            
+        await self.safe_delete_message(hand, quiet=True)
+        '''
+        
+        return Response(self.str.get('cmd-move-reply', "Moved song at index `{0}` to index `{1}`.").format(src_pos, dest_pos), delete_after=15)
+        
+    async def cmd_surprise(self, message, player, channel, author):
+        player.playlist.surprise()
+        entry, position = await player.playlist.add_entry("https://www.youtube.com/watch?v=rOU4yN_9KhE", channel=channel, author=author)
+        player.playlist.move(player.playlist.__len__() - 1, 0)
+        player.skip()
+        return Response("What's going on? ;)", delete_after=1)

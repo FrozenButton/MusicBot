@@ -64,6 +64,7 @@
     "cmd-resume-reply": "Resumed music in `{0.name}`",
     "cmd-resume-none": "Player is not paused.",
     "cmd-shuffle-reply": "Shuffled `{0}`'s queue.",
+	"cmd-move-reply": "Moved song at index `{0}` to index `{1}`.",
     "cmd-clear-reply": "Cleared `{0}`'s queue",
     "cmd-remove-none": "There's nothing to remove!",
     "cmd-remove-reply": "Removed `{0}` added by `{1}`",

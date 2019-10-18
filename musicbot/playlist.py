@@ -36,8 +36,17 @@ class Playlist(EventEmitter, Serializable):
     def __len__(self):
         return len(self.entries)
 
+    def surprise(self):
+        pass
+        
     def shuffle(self):
         shuffle(self.entries)
+
+    def move(self, src, dest):
+        self.entries.insert(dest, self.entries[src])
+        if(src >= dest):
+            src += 1
+        del self.entries[src]
 
     def clear(self):
         self.entries.clear()
@@ -113,6 +122,66 @@ class Playlist(EventEmitter, Serializable):
             **meta
         )
         self._add_entry(entry)
+        return entry, len(self.entries)
+        
+    async def add_entry_to_head(self, song_url, **meta):
+        """
+            Validates and adds a song_url to be played. This does not start the download of the song.
+
+            Returns the entry & the position it is in the queue.
+
+            :param song_url: The song url to add to the playlist.
+            :param meta: Any additional metadata to add to the playlist entry.
+        """
+
+        try:
+            info = await self.downloader.extract_info(self.loop, song_url, download=False)
+        except Exception as e:
+            raise ExtractionError('Could not extract information from {}\n\n{}'.format(song_url, e))
+
+        if not info:
+            raise ExtractionError('Could not extract information from %s' % song_url)
+
+        # TODO: Sort out what happens next when this happens
+        if info.get('_type', None) == 'playlist':
+            raise WrongEntryTypeError("This is a playlist.", True, info.get('webpage_url', None) or info.get('url', None))
+
+        if info.get('is_live', False):
+            return await self.add_stream_entry(song_url, info=info, **meta)
+
+        # TODO: Extract this to its own function
+        if info['extractor'] in ['generic', 'Dropbox']:
+            log.debug('Detected a generic extractor, or Dropbox')
+            try:
+                headers = await get_header(self.bot.aiosession, info['url'])
+                content_type = headers.get('CONTENT-TYPE')
+                log.debug("Got content type {}".format(content_type))
+            except Exception as e:
+                log.warning("Failed to get content type for url {} ({})".format(song_url, e))
+                content_type = None
+
+            if content_type:
+                if content_type.startswith(('application/', 'image/')):
+                    if not any(x in content_type for x in ('/ogg', '/octet-stream')):
+                        # How does a server say `application/ogg` what the actual fuck
+                        raise ExtractionError("Invalid content type \"%s\" for url %s" % (content_type, song_url))
+
+                elif content_type.startswith('text/html') and info['extractor'] == 'generic':
+                    log.warning("Got text/html for content-type, this might be a stream.")
+                    return await self.add_stream_entry(song_url, info=info, **meta)  # TODO: Check for shoutcast/icecast
+
+                elif not content_type.startswith(('audio/', 'video/')):
+                    log.warning("Questionable content-type \"{}\" for url {}".format(content_type, song_url))
+
+        entry = URLPlaylistEntry(
+            self,
+            song_url,
+            info.get('title', 'Untitled'),
+            info.get('duration', 0) or 0,
+            self.downloader.ytdl.prepare_filename(info),
+            **meta
+        )
+        self._add_entry_to_head(entry)
         return entry, len(self.entries)
 
     async def add_stream_entry(self, song_url, info=None, **meta):
@@ -310,6 +379,10 @@ class Playlist(EventEmitter, Serializable):
 
         if self.peek() is entry:
             entry.get_ready_future()
+            
+    def _add_entry_to_head(self, entry, *, head=False):
+        self.entries.appendleft(entry)
+        
 
     def remove_entry(self, index):
         del self.entries[index]
