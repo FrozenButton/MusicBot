@@ -3337,7 +3337,7 @@ class MusicBot(discord.Client):
 
             if position == 1 and player.is_stopped:
                 position = self.str.get('cmd-play-next', 'Up next!')
-                reply_text %= (btext, position)
+                reply_text %= (btext, str(position))
 
             else:
                 try:
