@@ -69,7 +69,7 @@ class Playlist(EventEmitter, Serializable):
         return entry
 
 
-    async def add_entry(self, song_url, **meta, song_index = -1):
+    async def add_entry(self, song_url, song_index = -1, **meta):
         """
             Validates and adds a song_url to be played. This does not start the download of the song.
 
@@ -138,7 +138,7 @@ class Playlist(EventEmitter, Serializable):
         return entry, add_position
     
 
-    async def add_stream_entry(self, song_url, info=None, **meta, stream_index = -1):
+    async def add_stream_entry(self, song_url, info=None, stream_index = -1, **meta):
         up_next = stream_index == 0
         if(stream_index >= self.__len__()):
             stream_index = -1
