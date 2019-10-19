@@ -47,11 +47,11 @@ class Playlist(EventEmitter, Serializable):
         if(src >= dest):
             src += 1
         del self.entries[src]
-		
-	def swap(self, pos1, pos2):
-		tmp_entry = self.entries[pos1]
-		self.entries[pos1] = self.entries[pos2]
-		self.entries[pos2] = tmp_entry
+        
+    def swap(self, pos1, pos2):
+        tmp_entry = self.entries[pos1]
+        self.entries[pos1] = self.entries[pos2]
+        self.entries[pos2] = tmp_entry
 
     def clear(self):
         self.entries.clear()
@@ -70,7 +70,7 @@ class Playlist(EventEmitter, Serializable):
 
 
     async def add_entry(self, song_url, **meta, song_index = -1):
-		"""
+        """
             Validates and adds a song_url to be played. This does not start the download of the song.
 
             Returns the entry & the position it is in the queue.
@@ -78,10 +78,10 @@ class Playlist(EventEmitter, Serializable):
             :param song_url: The song url to add to the playlist.
             :param meta: Any additional metadata to add to the playlist entry.
         """
-		
-		up_next = song_index == 0	
-		if(song_index >= self.__len__()): # If insert index is past the end, set to -1
-			song_index = -1				 # -1 will add the song to the end
+        
+        up_next = song_index == 0    
+        if(song_index >= self.__len__()): # If insert index is past the end, set to -1
+            song_index = -1                 # -1 will add the song to the end
 
         try:
             info = await self.downloader.extract_info(self.loop, song_url, download=False)
@@ -131,18 +131,18 @@ class Playlist(EventEmitter, Serializable):
             **meta
         )
         self._add_entry(entry, dest_index = song_index, head = up_next)
-		if(song_index == -1):
-			add_position = len(self.entries)
-		else:
-			add_position = song_index + 1
+        if(song_index == -1):
+            add_position = len(self.entries)
+        else:
+            add_position = song_index + 1
         return entry, add_position
     
 
     async def add_stream_entry(self, song_url, info=None, **meta, stream_index = -1):
-		up_next = stream_index == 0
-		if(stream_index >= self.__len__()):
-			stream_index = -1
-		
+        up_next = stream_index == 0
+        if(stream_index >= self.__len__()):
+            stream_index = -1
+        
         if info is None:
             info = {'title': song_url, 'extractor': None}
 
@@ -189,13 +189,13 @@ class Playlist(EventEmitter, Serializable):
             **meta
         )
         self._add_entry(entry, dest_index = stream_index, head = up_next)
-		
-		if(stream_index == -1):
-			add_position = len(self.entries)
-		else:
-			add_position = stream_index + 1
+        
+        if(stream_index == -1):
+            add_position = len(self.entries)
+        else:
+            add_position = stream_index + 1
         return entry, add_position
-		
+        
 
     async def import_from(self, playlist_url, **meta):
         """
@@ -336,8 +336,8 @@ class Playlist(EventEmitter, Serializable):
     def _add_entry(self, entry, *, dest_index = -1, head = False):
         if(head):
             self.entries.appendleft(entry)
-		elif(dest_index > -1 and dest_index < self.__len__()):
-			self.entries.insert(dest_index, entry)
+        elif(dest_index > -1 and dest_index < self.__len__()):
+            self.entries.insert(dest_index, entry)
         else:
             self.entries.append(entry)
 
