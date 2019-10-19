@@ -1300,14 +1300,14 @@ class MusicBot(discord.Client):
             )
         return True
 
-	async def cmd_play(self, message, player, channel, author, permissions, leftover_args, song_url, pos = 0):
+    async def cmd_play(self, message, player, channel, author, permissions, leftover_args, song_url, pos = 0):
         self.play(message, player, channel, author, permissions, leftover_args, song_url, pos)
-		
-	async def cmd_playnext(self, message, player, channel, author, permissions, leftover_args, song_url):
-		self.play(message, player, channel, author, permissions, leftover_args, song_url, pos = 1)
 
-	def play(self, message, player, channel, author, permissions, leftover_args, song_url, pos = 0):
-		"""
+    async def cmd_playnext(self, message, player, channel, author, permissions, leftover_args, song_url):
+        self.play(message, player, channel, author, permissions, leftover_args, song_url, pos = 1)
+
+    def play(self, message, player, channel, author, permissions, leftover_args, song_url, pos = 0):
+        """
         Usage:
             {command_prefix}play song_link
             {command_prefix}play text to search for
