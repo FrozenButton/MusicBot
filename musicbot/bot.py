@@ -3073,7 +3073,8 @@ class MusicBot(discord.Client):
         
     async def cmd_surprise(self, message, player, channel, author):
         player.playlist.surprise()
-        entry, position = await player.playlist.add_entry("https://www.youtube.com/watch?v=rOU4yN_9KhE", channel=channel, author=author)
+#        entry, position = await player.playlist.add_entry("https://www.youtube.com/watch?v=rOU4yN_9KhE", channel=channel, author=author)
+        entry, position = await player.playlist.add_entry("https://soundcloud.com/user-411824135/shibayanrecords-nachi-casual-killer-remix", channel=channel, author=author)
         player.playlist.move(player.playlist.__len__() - 1, 0)
         player.skip()
         return Response("What's going on? ;)", delete_after=1)
